@@ -108,11 +108,11 @@ class Companion:
         return "\n".join(f"• {n['key']}: {n['value']}" for n in notes)
 
     async def tick(self, now: Optional[datetime] = None) -> list[str]:
-        \"\"\"Run any jobs whose cron is due. Returns a list of prompts that fired.
+        """Run any jobs whose cron is due. Returns a list of prompts that fired.
 
         The caller (Telegram bot) is responsible for sending each prompt through
         the LLM and posting the result back to the user.
-        \"\"\"
+        """
         now = now or datetime.now()
         fired: list[tuple[int, str, str]] = []  # (job_id, name, prompt)
         for job in memory.list_jobs(enabled_only=True):
@@ -126,7 +126,7 @@ class Companion:
         return [(name, prompt) for _id, name, prompt in fired]
 
     async def reply(self, user_text: str) -> str:
-        \"\"\"Top-level entry point. Returns the text to send back to the user.\"\"\"
+        """Top-level entry point. Returns the text to send back to the user."""
         user_text = (user_text or "").strip()
         if not user_text:
             return "Say something — I'm listening."
