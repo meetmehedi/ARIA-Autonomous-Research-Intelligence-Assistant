@@ -1,6 +1,6 @@
 # ARIA (Autonomous Research & Intelligence Assistant)
 
-**Owner:** Md. Mehedi Hasan (BSc CSE student, Researcher, DIU CPC President)  
+**Owner:** Md. Mehedi Hasan (BSc CSE student)  
 **Version:** 1.0 (Local Reinforcement Learning Edition)
 
 ARIA is an entirely local, self-contained personal AI agent designed exclusively for Mehedi. 
