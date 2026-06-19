@@ -22,6 +22,11 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
 ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-pro")
 
+# Optional override — lets you point the OpenAI client at any OpenAI-compatible
+# endpoint (NVIDIA integrate, OpenRouter, local llama.cpp, etc.). Leave empty
+# to use the official OpenAI API.
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "").strip() or None
+
 # DB Config
 DATABASE_PATH = os.getenv("DATABASE_PATH", "aria_memory.db")
 # Resolve database relative to workspace root if it is a relative path
@@ -40,6 +45,8 @@ def print_config_summary():
     print(f"LLM Provider: {LLM_PROVIDER}")
     print(f"Database Path: {DATABASE_PATH}")
     print(f"OpenAI Key Configured: {'Yes' if OPENAI_API_KEY else 'No'}")
+    print(f"OpenAI Model: {OPENAI_MODEL}")
+    print(f"OpenAI Base URL: {OPENAI_BASE_URL or 'default (api.openai.com)'}")
     print(f"Anthropic Key Configured: {'Yes' if ANTHROPIC_API_KEY else 'No'}")
     print(f"Gemini Key Configured: {'Yes' if GEMINI_API_KEY else 'No'}")
     print(f"Telegram Token Configured: {'Yes' if TELEGRAM_BOT_TOKEN else 'No'}")

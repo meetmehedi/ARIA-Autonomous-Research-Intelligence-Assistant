@@ -6,7 +6,8 @@ from aria.config import (
     GEMINI_API_KEY,
     OPENAI_MODEL,
     ANTHROPIC_MODEL,
-    GEMINI_MODEL
+    GEMINI_MODEL,
+    OPENAI_BASE_URL,
 )
 from aria.memory import get_profile_summary_prompt
 
@@ -51,7 +52,10 @@ def query_openai(prompt: str, history: list) -> str:
         raise ValueError("OpenAI API Key is missing. Please set it in your .env file.")
     
     from openai import OpenAI
-    client = OpenAI(api_key=OPENAI_API_KEY)
+    client_kwargs: dict = {"api_key": OPENAI_API_KEY}
+    if OPENAI_BASE_URL:
+        client_kwargs["base_url"] = OPENAI_BASE_URL
+    client = OpenAI(**client_kwargs)
     
     messages = []
     messages.append({"role": "system", "content": get_system_prompt()})
