@@ -96,7 +96,7 @@ def _parse_tool_args(args_str: str) -> dict:
     if not isinstance(call_node, ast.Call):
         raise ValueError("Arguments must be a comma-separated list of keyword=value pairs.")
 
-    if call_node.args or call_node.starargs or call_node.kwargs:
+    if call_node.args:
         raise ValueError("Only keyword=value arguments are allowed in tool calls.")
 
     kwargs: dict = {}

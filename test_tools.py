@@ -96,11 +96,35 @@ class TestAriaTools(unittest.TestCase):
             mock_func.return_value = "Tool run completed."
             mock_registry.__contains__.return_value = True
             mock_registry.__getitem__.return_value = mock_func
-            
+
             called, result = parse_and_run_tool('Thought: I need to do search.\nCall: search_web(query="Continual learning papers")')
             self.assertTrue(called)
             mock_func.assert_called_once_with(query="Continual learning papers")
             self.assertIn("Tool run completed", result)
+
+    def test_react_parsing_rejects_positional(self):
+        # New AST parser must reject positional args (only kwargs allowed).
+        called, result = parse_and_run_tool('Call: search_web("positional only")')
+        self.assertTrue(called)
+        self.assertIn("Only keyword=value arguments", result)
+
+    def test_react_parsing_rejects_call_expression(self):
+        # AST parser must reject embedded function calls like __import__("os").
+        called, result = parse_and_run_tool('Call: search_web(query=__import__("os").system("rm -rf /"))')
+        self.assertTrue(called)
+        self.assertIn("Unsupported expression node", result)
+
+    def test_react_parsing_multiple_kwargs(self):
+        with patch('aria.assistant.TOOL_REGISTRY') as mock_registry:
+            mock_func = MagicMock(return_value="ok")
+            mock_registry.__contains__.return_value = True
+            mock_registry.__getitem__.return_value = mock_func
+
+            called, result = parse_and_run_tool(
+                'Call: send_email(subject="Hi", body="there", to_email="a@b.com")'
+            )
+            self.assertTrue(called)
+            mock_func.assert_called_once_with(subject="Hi", body="there", to_email="a@b.com")
 
     def test_json_block_extraction(self):
         # Test JSON parsing helper in builder
