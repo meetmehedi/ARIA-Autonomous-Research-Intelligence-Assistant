@@ -1,9 +1,12 @@
 import sys
 from duckduckgo_search import DDGS
+from aria.logging_setup import get_logger
+
+logger = get_logger(__name__)
 
 def search_web(query: str, max_results: int = 5) -> list:
     """Performs a web search using DuckDuckGo.
-    
+
     Returns a list of dicts with keys: 'title', 'href', and 'body'.
     """
     try:
@@ -18,7 +21,7 @@ def search_web(query: str, max_results: int = 5) -> list:
                 for r in results
             ]
     except Exception as e:
-        print(f"Error searching DDG: {e}", file=sys.stderr)
+        logger.warning("Error searching DDG for %r: %s", query, e)
         return []
 
 if __name__ == "__main__":

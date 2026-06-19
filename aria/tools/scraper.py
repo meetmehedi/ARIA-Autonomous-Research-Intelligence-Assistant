@@ -1,6 +1,9 @@
 import sys
 import requests
 from bs4 import BeautifulSoup
+from aria.logging_setup import get_logger
+
+logger = get_logger(__name__)
 
 def scrape_url(url: str) -> str:
     """Scrapes a webpage URL and extracts its main text content.
@@ -35,7 +38,7 @@ def scrape_url(url: str) -> str:
         
     except Exception as e:
         err_msg = f"Error scraping {url}: {e}"
-        print(err_msg, file=sys.stderr)
+        logger.warning(err_msg)
         return err_msg
 
 if __name__ == "__main__":

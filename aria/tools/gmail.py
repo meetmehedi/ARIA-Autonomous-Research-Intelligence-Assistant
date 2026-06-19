@@ -3,6 +3,9 @@ import sys
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from aria.logging_setup import get_logger
+
+logger = get_logger(__name__)
 
 def send_email(subject: str, body: str, to_email: str = None) -> bool:
     """Drafts and sends an email. 
@@ -42,7 +45,7 @@ def send_email(subject: str, body: str, to_email: str = None) -> bool:
         server.quit()
         return True
     except Exception as e:
-        print(f"Failed to send email to {target_to} via SMTP: {e}", file=sys.stderr)
+        logger.warning("Failed to send email to %s via SMTP: %s", target_to, e)
         return False
 
 if __name__ == "__main__":

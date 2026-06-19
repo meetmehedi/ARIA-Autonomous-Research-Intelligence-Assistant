@@ -1,8 +1,12 @@
 import re
+import ast
 import json
 import sys
 import aria.memory as memory
 import aria.llm as llm
+from aria.logging_setup import get_logger
+
+logger = get_logger(__name__)
 
 # Import tools
 from aria.tools.search import search_web
@@ -52,55 +56,87 @@ Available Tools:
 - get_profile() -> gets Mehedi's current profile settings.
 """
 
+def _ast_to_python(node: ast.AST):
+    """Recursively convert a restricted AST node to a Python value.
+
+    Only literals and container expressions are supported; anything else
+    raises ``ValueError`` so we never fall back to ``eval``.
+    """
+    if isinstance(node, ast.Constant):
+        return node.value
+    if isinstance(node, ast.List):
+        return [_ast_to_python(elt) for elt in node.elts]
+    if isinstance(node, ast.Tuple):
+        return tuple(_ast_to_python(elt) for elt in node.elts)
+    if isinstance(node, ast.Dict):
+        return {_ast_to_python(k): _ast_to_python(v) for k, v in zip(node.keys, node.values)}
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+        inner = _ast_to_python(node.operand)
+        if not isinstance(inner, (int, float)):
+            raise ValueError(f"Unsupported unary operand: {type(inner).__name__}")
+        return -inner
+    raise ValueError(f"Unsupported expression node: {type(node).__name__}")
+
+
+def _parse_tool_args(args_str: str) -> dict:
+    """Parse the inner contents of ``Call: tool_name(...)`` into a kwargs dict.
+
+    Uses ``ast.parse`` in ``eval`` mode and only accepts keyword-argument
+    sequences whose values are literals/lists/tuples/dicts. This replaces
+    the previous ``eval`` call and is safe against arbitrary code execution.
+    """
+    if not args_str.strip():
+        return {}
+
+    # Wrap in a fake function call so the parser treats `kwargs=...` as
+    # keyword arguments to a call, then we read the Call node's keywords.
+    wrapped = f"_f({args_str})"
+    tree = ast.parse(wrapped, mode="eval")
+    call_node = tree.body
+    if not isinstance(call_node, ast.Call):
+        raise ValueError("Arguments must be a comma-separated list of keyword=value pairs.")
+
+    if call_node.args or call_node.starargs or call_node.kwargs:
+        raise ValueError("Only keyword=value arguments are allowed in tool calls.")
+
+    kwargs: dict = {}
+    for kw in call_node.keywords:
+        if kw.arg is None:
+            # ``**something`` is not supported — LLM is expected to use literals.
+            raise ValueError("**kwargs expansion is not allowed in tool calls.")
+        kwargs[kw.arg] = _ast_to_python(kw.value)
+    return kwargs
+
+
 def parse_and_run_tool(llm_output: str) -> tuple:
     """Parses 'Call: tool_name(args)' from output and runs the matching tool.
-    
+
     Returns (tool_called_bool, tool_output_str).
     """
-    match = re.search(r"Call:\s*(\w+)\((.*)\)", llm_output)
+    match = re.search(r"Call:\s*(\w+)\((.*)\)", llm_output, re.DOTALL)
     if not match:
         return False, ""
-        
+
     tool_name = match.group(1)
-    args_str = match.group(2)
-    
+    args_str = match.group(2).strip()
+
     if tool_name not in TOOL_REGISTRY:
         return True, f"Error: Tool '{tool_name}' is not in the registry."
-        
+
     tool_func = TOOL_REGISTRY[tool_name]
-    
-    # Safely evaluate arguments in the context of python datatypes
+
     try:
-        # Wrap in dictionary/tuple evaluation
-        # E.g., if args_str is `query="hello"`, we can evaluate it by wrapping it
-        # We can construct a local namespace and execute
-        local_vars = {}
-        eval_str = f"dict({args_str})"
-        safe_globals = {
-            "__builtins__": None,
-            "dict": dict,
-            "list": list,
-            "tuple": tuple,
-            "str": str,
-            "int": int,
-            "float": float,
-            "bool": bool
-        }
-        args_dict = eval(eval_str, safe_globals, local_vars)
-        
-        # Invoke tool function
+        args_dict = _parse_tool_args(args_str)
         result = tool_func(**args_dict)
-        
-        # Format tool result as string
-        if isinstance(result, (dict, list)):
-            result_str = json.dumps(result, indent=2)
-        else:
-            result_str = str(result)
-            
-        return True, result_str
-        
     except Exception as e:
         return True, f"Error parsing or executing tool command arguments '{args_str}': {e}"
+
+    if isinstance(result, (dict, list)):
+        result_str = json.dumps(result, indent=2)
+    else:
+        result_str = str(result)
+
+    return True, result_str
 
 def execute_assistant_task(user_prompt: str, history: list = None, max_steps: int = 5) -> str:
     """Runs a ReAct loop executing assistant tasks with tools."""
@@ -113,7 +149,7 @@ def execute_assistant_task(user_prompt: str, history: list = None, max_steps: in
     # We append a system reminder about tools to the active context
     step_instruction = f"{ASSISTANT_SYSTEM_PROMPT}\n\nUser Query: {user_prompt}"
     
-    for step in range(max_steps):
+    for _ in range(max_steps):
         # Format prompt including history and the tool context
         # We query the LLM
         response = llm.generate_response(step_instruction, temp_history)

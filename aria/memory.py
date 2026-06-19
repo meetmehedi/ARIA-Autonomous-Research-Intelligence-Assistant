@@ -123,19 +123,24 @@ def add_conversation_message(role: str, content: str, summary: str = None):
     conn.close()
 
 def get_conversation_history(limit: int = 20) -> list:
-    """Retrieves the latest messages in chronological order."""
+    """Retrieves the latest messages in chronological order.
+
+    Rows with empty/whitespace-only content are skipped so they don't pollute
+    the prompt context sent to the LLM.
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     # Fetch descending to get the latest, then reverse for chronological order
     cursor.execute("""
-    SELECT id, role, content, summary, timestamp 
-    FROM conversations 
-    ORDER BY id DESC 
+    SELECT id, role, content, summary, timestamp
+    FROM conversations
+    WHERE content IS NOT NULL AND TRIM(content) != ''
+    ORDER BY id DESC
     LIMIT ?
     """, (limit,))
     rows = cursor.fetchall()
     conn.close()
-    
+
     messages = []
     for row in reversed(rows):
         messages.append({
@@ -156,7 +161,18 @@ def clear_conversation_history():
     conn.close()
 
 def add_task(description: str, status: str = "pending") -> int:
-    """Adds a new task to the task list."""
+    """Adds a new task to the task list.
+
+    Validates ``status`` against the schema's CHECK constraint before
+    hitting SQLite, so the caller gets a clear ``ValueError`` instead of a
+    silent IntegrityError.
+    """
+    allowed_statuses = ("pending", "in_progress", "completed")
+    if status not in allowed_statuses:
+        raise ValueError(
+            f"Invalid task status {status!r}. Must be one of {allowed_statuses}."
+        )
+
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""

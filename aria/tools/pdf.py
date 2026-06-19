@@ -1,5 +1,8 @@
 import sys
 import fitz  # PyMuPDF
+from aria.logging_setup import get_logger
+
+logger = get_logger(__name__)
 
 def read_pdf(file_path: str) -> str:
     """Reads and extracts text from a PDF file using PyMuPDF.
@@ -15,7 +18,7 @@ def read_pdf(file_path: str) -> str:
         return "\n\n--- Page Break ---\n\n".join(text_pages)
     except Exception as e:
         err_msg = f"Error reading PDF {file_path}: {e}"
-        print(err_msg, file=sys.stderr)
+        logger.warning(err_msg)
         return err_msg
 
 if __name__ == "__main__":

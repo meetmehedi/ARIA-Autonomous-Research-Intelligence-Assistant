@@ -26,3 +26,7 @@ ENV/
 
 # Generated agents output
 built_agents/
+
+# Editor metadata
+.puku/
+
