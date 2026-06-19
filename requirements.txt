@@ -1,6 +1,3 @@
-openai>=1.0.0
-anthropic>=0.18.0
-google-genai>=0.1.0
 python-dotenv>=1.0.0
 rich>=13.0.0
 prompt_toolkit>=3.0.0
@@ -11,4 +8,8 @@ requests>=2.31.0
 streamlit>=1.30.0
 python-telegram-bot>=20.0
 SpeechRecognition>=3.10
-pyaudio>=0.2.13  # macOS voice (wake-word + STT)
+pyaudio>=0.2.13
+torch
+gymnasium
+stable-baselines3
+sentence-transformers

@@ -174,7 +174,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_chat_action(chat_id=chat_id, action="typing")
 
     try:
-        response = companion.reply(user_input)
+        response = await companion.reply(user_input)
     except Exception as exc:
         logger.exception("Companion reply failed")
         await _safe_reply(update, f"⚠️ Error: {exc}")
@@ -193,7 +193,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def job_tick_callback(context: ContextTypes.DEFAULT_TYPE):
     """JobQueue callback — fires every 60s and runs any due companion jobs."""
     from datetime import datetime
-    fired = companion.tick(datetime.now())
+    fired = await companion.tick(datetime.now())
     if not fired:
         return
     chat_id = TELEGRAM_CHAT_ID
@@ -202,7 +202,7 @@ async def job_tick_callback(context: ContextTypes.DEFAULT_TYPE):
         return
     for name, prompt in fired:
         try:
-            reply_text = companion.reply(prompt)
+            reply_text = await companion.reply(prompt)
         except Exception as exc:
             logger.exception("Job %s failed: %s", name, exc)
             continue

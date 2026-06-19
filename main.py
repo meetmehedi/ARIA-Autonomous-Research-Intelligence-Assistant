@@ -1,4 +1,8 @@
 import sys
+import os
+os.environ["USE_TF"] = "NO"
+os.environ["USE_TORCH"] = "YES"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 import argparse
 from aria.config import print_config_summary
 from aria.memory import init_db

@@ -1,9 +1,9 @@
+import asyncio
 import re
 from pathlib import Path
 import streamlit as st
 import aria.memory as memory
-from aria.assistant import execute_assistant_task
-from aria.builder import build_agent
+from aria.rl_agent import execute_rl_agent
 from aria.config import LLM_PROVIDER
 
 # Page Configuration
@@ -197,24 +197,10 @@ if user_input := st.chat_input("Message ARIA..."):
                 history = memory.get_conversation_history(20)
                 
                 if is_builder_request:
-                    response = build_agent(user_input)
+                    response = asyncio.run(execute_rl_agent(user_input, history=[]))
                     st.markdown(response)
-                    
-                    # Search and offer download button if generated zip exists
-                    match = re.search(r"file://([^\s\)]+\.zip)", response)
-                    if match:
-                        zip_path = Path(match.group(1))
-                        if zip_path.exists():
-                            with open(zip_path, "rb") as f:
-                                st.download_button(
-                                    label=f"📥 Download {zip_path.name}",
-                                    data=f,
-                                    file_name=zip_path.name,
-                                    mime="application/zip",
-                                    key="new_agent_dl"
-                                )
                 else:
-                    response = execute_assistant_task(user_input, history)
+                    response = asyncio.run(execute_rl_agent(user_input, history))
                     st.markdown(response)
                     
                 # Save to memory DB

@@ -19,9 +19,8 @@ from datetime import datetime
 from typing import Optional
 
 import aria.memory as memory
-import aria.llm as llm
-from aria.assistant import execute_assistant_task
-from aria.builder import build_agent
+
+from aria.rl_agent import execute_rl_agent
 from aria.logging_setup import get_logger
 
 logger = get_logger(__name__)
@@ -82,13 +81,11 @@ Voice: casual, direct, no fluff. Match his tone — researcher-credible, never s
 Keep replies short by default. Long answers only when he asks for them.
 
 You know these tools are available behind the scenes:
-- build_agent(description)         -> creates a new Python agent folder + .zip
-- execute_assistant_task(prompt)   -> runs a ReAct loop with search/scrape/pdf/etc.
+- execute_rl_agent(prompt)   -> uses Reinforcement Learning to select a tool action
 - notes (key/value)                -> facts you remember across restarts
 - jobs (cron + prompt)             -> recurring things you do on your own
 
-When Mehedi asks you to "build an agent", call build_agent and return its text reply.
-When he asks a research / tool question, call execute_assistant_task and return its text.
+When Mehedi asks you to "build an agent", or a research question, call execute_rl_agent.
 When he says "remember X" or "/note X", use add_note.
 When he says "every day at 9 remind me X" or "/job", use add_job.
 When he says "what do you remember" or "/notes", use list_notes.
@@ -110,12 +107,12 @@ class Companion:
             return "No notes stored yet."
         return "\n".join(f"• {n['key']}: {n['value']}" for n in notes)
 
-    def tick(self, now: Optional[datetime] = None) -> list[str]:
-        """Run any jobs whose cron is due. Returns a list of prompts that fired.
+    async def tick(self, now: Optional[datetime] = None) -> list[str]:
+        \"\"\"Run any jobs whose cron is due. Returns a list of prompts that fired.
 
         The caller (Telegram bot) is responsible for sending each prompt through
         the LLM and posting the result back to the user.
-        """
+        \"\"\"
         now = now or datetime.now()
         fired: list[tuple[int, str, str]] = []  # (job_id, name, prompt)
         for job in memory.list_jobs(enabled_only=True):
@@ -128,8 +125,8 @@ class Companion:
             memory.mark_job_run(job_id)
         return [(name, prompt) for _id, name, prompt in fired]
 
-    def reply(self, user_text: str) -> str:
-        """Top-level entry point. Returns the text to send back to the user."""
+    async def reply(self, user_text: str) -> str:
+        \"\"\"Top-level entry point. Returns the text to send back to the user.\"\"\"
         user_text = (user_text or "").strip()
         if not user_text:
             return "Say something — I'm listening."
@@ -194,11 +191,11 @@ class Companion:
             "make me an agent", "generate an agent", "build a chatbot",
         )
         if any(t in user_text.lower() for t in build_triggers) or user_text.startswith("/build"):
-            return build_agent(user_text)
+            return await execute_rl_agent(user_text, history=[])
 
-        # --- Default: hand off to the ReAct assistant ---------------------
+        # --- Default: hand off to the RL agent ---------------------
         history = memory.get_conversation_history(20)
-        response = execute_assistant_task(user_text, history)
+        response = await execute_rl_agent(user_text, history)
 
         # Persist turn (after the turn finishes, so we don't store intermediate noise)
         try:
@@ -215,6 +212,7 @@ class Companion:
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
+    import asyncio
     c = Companion()
     print(c.notes_summary())
-    print(c.reply("hello, who are you?"))
+    print(asyncio.run(c.reply("hello, who are you?")))

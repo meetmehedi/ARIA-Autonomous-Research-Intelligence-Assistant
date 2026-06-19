@@ -1,4 +1,5 @@
 import sys
+import asyncio
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -7,10 +8,9 @@ from rich.text import Text
 from rich.prompt import Prompt
 
 import aria.memory as memory
-import aria.llm as llm
+
 from aria.config import LLM_PROVIDER
-from aria.assistant import execute_assistant_task
-from aria.builder import build_agent
+from aria.rl_agent import execute_rl_agent
 
 console = Console()
 
@@ -255,9 +255,9 @@ def run_cli():
                 ])
                 
                 if is_builder_request:
-                    response = build_agent(user_input)
+                    response = asyncio.run(execute_rl_agent(user_input, history=[]))
                 else:
-                    response = execute_assistant_task(user_input, history)
+                    response = asyncio.run(execute_rl_agent(user_input, history))
                 
                 # Save conversation
                 memory.add_conversation_message("user", user_input)
