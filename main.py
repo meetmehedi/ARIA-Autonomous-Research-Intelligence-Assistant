@@ -8,6 +8,7 @@ def main():
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--telegram", action="store_true", help="Launch Telegram Bot interface")
     group.add_argument("--web", action="store_true", help="Launch Streamlit Web UI interface")
+    group.add_argument("--voice", action="store_true", help="Launch wake-word voice interface (macOS)")
     group.add_argument("--cli", action="store_true", help="Launch interactive CLI (default)")
     group.add_argument("--config-test", action="store_true", help="Test loading config and databases")
     
@@ -20,6 +21,16 @@ def main():
         print_config_summary()
         sys.exit(0)
         
+    if args.voice:
+        try:
+            from aria.voice import run as run_voice
+            print("Launching ARIA in wake-word voice mode (macOS)...")
+            run_voice()
+        except ImportError as e:
+            print(f"Error launching voice mode: {e}")
+            print("Install with: pip install SpeechRecognition pyaudio")
+            sys.exit(1)
+
     if args.telegram:
         try:
             from aria.telegram_bot import run_telegram_bot

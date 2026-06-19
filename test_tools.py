@@ -132,5 +132,12 @@ class TestAriaTools(unittest.TestCase):
         extracted = extract_json_block(json_payload)
         self.assertEqual(extracted["agent_name"], "test_agent")
 
+    def test_voice_strip_wake(self):
+        from aria.voice import _strip_wake
+        self.assertEqual(_strip_wake("aria what is the weather"), "what is the weather")
+        self.assertEqual(_strip_wake("Hey Aria, build me an agent"), "build me an agent")
+        self.assertEqual(_strip_wake("ARIA  search for news"), "search for news")
+        self.assertEqual(_strip_wake("just chatting, no wake word"), "just chatting, no wake word")
+
 if __name__ == "__main__":
     unittest.main()

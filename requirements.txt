@@ -10,3 +10,5 @@ beautifulsoup4>=4.12.0
 requests>=2.31.0
 streamlit>=1.30.0
 python-telegram-bot>=20.0
+SpeechRecognition>=3.10
+pyaudio>=0.2.13  # macOS voice (wake-word + STT)
